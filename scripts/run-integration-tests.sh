@@ -286,39 +286,52 @@ common_chaincode_test() {
 }
 
 contract_tests() {
-    CONTRACT="default"
-
     if [ -z "$1" ]; then
         LANGUAGES="go java javascript typescript kotlin"
     else
         LANGUAGES="$1"
     fi
-    for LANGUAGE in ${LANGUAGES}; do
-        contract_test ${LANGUAGE} ${CONTRACT}
+
+    CONTRACT="default"
+    VERSIONS="v2"
+
+    for VERSION in ${VERSIONS}; do
+        for LANGUAGE in ${LANGUAGES}; do
+            if [[ ${LANGUAGE} != "go" ]] || [[ ${VERSION} == "v2" ]]; then
+                contract_test ${LANGUAGE} ${CONTRACT} ${VERSION}
+            fi
+        done
     done
 }
 
 private_contract_tests() {
-    CONTRACT="private"
-
     if [ -z "$1" ]; then
         LANGUAGES="go java javascript typescript"
 
     else
         LANGUAGES="$1"
     fi
-    for LANGUAGE in ${LANGUAGES}; do
-        contract_test ${LANGUAGE} ${CONTRACT}
-    done
 
+    CONTRACT="private"
+    VERSIONS="v1 v2"
+
+    for VERSION in ${VERSIONS}; do
+        for LANGUAGE in ${LANGUAGES}; do
+            if [[ ${VERSION} == "v2" ]] || [[ ${LANGUAGE} != "go" ]]; then
+                contract_test ${LANGUAGE} ${CONTRACT} ${VERSION}
+            fi
+        done
+    done
 }
 
 contract_test() {
     LANGUAGE=$1
     CONTRACT=$2
-    mkdir ${LANGUAGE}-${CONTRACT}-contract
-    pushd ${LANGUAGE}-${CONTRACT}-contract
-    ${LANGUAGE}_${CONTRACT}_contract_package
+    VERSION=$3
+    mkdir ${VERSION}-${LANGUAGE}-${CONTRACT}-contract
+    pushd ${VERSION}-${LANGUAGE}-${CONTRACT}-contract
+
+    ${LANGUAGE}_${CONTRACT}_contract_package ${VERSION}
     common_deploy "contract"
     if [ ${CONTRACT} == "default" ]; then
         common_contract_test
@@ -329,7 +342,7 @@ contract_test() {
 }
 
 java_default_contract_package() {
-    yo fabric:contract -- --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
+    yo fabric:contract -- --fabricVersion=${VERSION} --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
     ./gradlew clean build shadowJar
     pushd build/libs
     common_package "java" "contract"
@@ -338,7 +351,7 @@ java_default_contract_package() {
 }
 
 kotlin_default_contract_package() {
-    yo fabric:contract -- --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
+    yo fabric:contract -- --fabricVersion=$1 --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
     ./gradlew clean build shadowJar
     pushd build/libs
     common_package "java" "contract"
@@ -350,7 +363,7 @@ go_default_contract_package() {
     export GOPATH=$PWD
     mkdir -p src/contract
     pushd src/contract
-    yo fabric:contract -- --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
+    yo fabric:contract -- --fabricVersion=${VERSION} --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
     GO111MODULE=on go mod vendor
     go test
     go build
@@ -360,14 +373,14 @@ go_default_contract_package() {
 }
 
 javascript_default_contract_package() {
-    yo fabric:contract -- --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
+    yo fabric:contract -- --fabricVersion=${VERSION} --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
     npm audit --audit-level=moderate
     npm test
     common_package "node" "contract"
 }
 
 typescript_default_contract_package() {
-    yo fabric:contract -- --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
+    yo fabric:contract -- --fabricVersion=${VERSION} --contractType=${CONTRACT} --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset conga
     npm audit --audit-level=moderate
     npm test
     npm run build
@@ -375,20 +388,20 @@ typescript_default_contract_package() {
 }
 
 java_private_contract_package() {
-    yo fabric:contract -- --contractType=${CONTRACT} --mspId Org1MSP --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset PrivateConga
+    yo fabric:contract -- --fabricVersion=${VERSION} --contractType=${CONTRACT} --mspId Org1MSP --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset PrivateConga
     ./gradlew clean build shadowJar
     common_package "java" "contract"
 }
 
 javascript_private_contract_package() {
-    yo fabric:contract -- --contractType=${CONTRACT} --mspId Org1MSP --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset PrivateConga
+    yo fabric:contract -- --fabricVersion=${VERSION} --contractType=${CONTRACT} --mspId Org1MSP --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset PrivateConga
     npm audit --audit-level=moderate
     npm test
     common_package "node" "contract"
 }
 
 typescript_private_contract_package() {
-    yo fabric:contract -- --contractType=${CONTRACT} --mspId Org1MSP --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset PrivateConga
+    yo fabric:contract -- --fabricVersion=${VERSION} --contractType=${CONTRACT} --mspId Org1MSP --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset PrivateConga
     npm audit --audit-level=moderate
     npm test
     npm run build
@@ -399,7 +412,7 @@ go_private_contract_package() {
     export GOPATH=$PWD
     mkdir -p src/contract
     pushd src/contract
-    yo fabric:contract -- --contractType=${CONTRACT} --mspId Org1MSP --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset PrivateConga
+    yo fabric:contract -- --fabricVersion=${VERSION} --contractType=${CONTRACT} --mspId Org1MSP --language=${LANGUAGE} --author="Lord Conga" --description="Lord Conga's Smart Contract" --name=${VERSION}-${LANGUAGE}-${CONTRACT}-contract --version=0.0.1 --license=Apache-2.0 --asset PrivateConga
     cp collections.json ../../collections.json
     GO111MODULE=on go mod vendor
     go test
@@ -423,7 +436,7 @@ common_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["congaExists","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["congaExists","1001"]}'
 
     date
     ${RETRY} docker run \
@@ -439,7 +452,7 @@ common_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["createConga","1001","conga 1001 value"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
+        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["createConga","1001","conga 1001 value"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
 
     date
     ${RETRY} docker run \
@@ -454,7 +467,7 @@ common_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["congaExists","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["congaExists","1001"]}'
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -468,7 +481,7 @@ common_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["readConga","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["readConga","1001"]}'
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -483,7 +496,7 @@ common_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["updateConga","1001","conga 1001 new value"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
+        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["updateConga","1001","conga 1001 new value"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
 
     date
     ${RETRY} docker run \
@@ -498,7 +511,7 @@ common_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["readConga","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["readConga","1001"]}'
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -513,7 +526,7 @@ common_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["deleteConga","1001"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
+        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["deleteConga","1001"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
 
     date
     ${RETRY} docker run \
@@ -528,7 +541,7 @@ common_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["congaExists","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["congaExists","1001"]}'
     date
 }
 
@@ -551,7 +564,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["privateCongaExists","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["privateCongaExists","1001"]}'
     date
     TRANSIENT=$(echo -n "100" | base64 | tr -d \\n)
     ${RETRY} docker run \
@@ -567,7 +580,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["createPrivateConga","1001"]}' --transient "{\""${priVal}"\":\""${TRANSIENT}"\"}" --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
+        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["createPrivateConga","1001"]}' --transient "{\""${priVal}"\":\""${TRANSIENT}"\"}" --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -582,7 +595,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["privateCongaExists","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["privateCongaExists","1001"]}'
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -596,7 +609,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["readPrivateConga","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["readPrivateConga","1001"]}'
     date
     TRANSIENT=$(echo -n "125" | base64 | tr -d \\n)
     ${RETRY} docker run \
@@ -612,7 +625,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["updatePrivateConga","1001"]}' --transient "{\""${priVal}"\":\""${TRANSIENT}"\"}" --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
+        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["updatePrivateConga","1001"]}' --transient "{\""${priVal}"\":\""${TRANSIENT}"\"}" --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -627,7 +640,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["readPrivateConga","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["readPrivateConga","1001"]}'
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -642,7 +655,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["verifyPrivateConga","1001","{\"privateValue\":\"125\"}"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
+        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["verifyPrivateConga","1001","{\"privateValue\":\"125\"}"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -657,7 +670,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["deletePrivateConga","1001"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
+        peer chaincode invoke -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["deletePrivateConga","1001"]}' --ordererTLSHostnameOverride orderer.example.com --tls true --cafile /etc/hyperledger/fabric/Org1/ca-tls-root.pem --waitForEvent --peerAddresses peer0.org1.example.com:17051 --peerAddresses peer0.org2.example.com:17056 --tlsRootCertFiles /etc/hyperledger/fabric/Org1/org1peer1tls/ca.crt --tlsRootCertFiles /etc/hyperledger/fabric/Org2/org2peer1tls/ca.crt
     date
     ${RETRY} docker run \
         -e "CORE_PEER_ADDRESS=peer0.org1.example.com:17051" \
@@ -671,7 +684,7 @@ private_contract_test() {
         --network yofn \
         --rm \
         hyperledger/fabric-tools \
-        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["privateCongaExists","1001"]}'
+        peer chaincode query -o orderer.example.com:17061 -C mychannel -n ${VERSION}-${LANGUAGE}-${CONTRACT}-contract -c '{"Args":["privateCongaExists","1001"]}'
     date
 }
 
